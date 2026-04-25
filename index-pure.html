@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>简历生成器 | Resume Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; min-height: 100vh; }
+
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 24px; background: white; border-bottom: 1px solid #e5e7eb;
+    }
+    .header h1 { font-size: 20px; font-weight: 700; color: #1f2937; }
+    .header p { font-size: 14px; color: #6b7280; }
+    .header-btns { display: flex; gap: 12px; }
+    .btn {
+      padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary { background: #3b82f6; color: white; border: none; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-outline { background: white; color: #374151; border: 1px solid #d1d5db; }
+    .btn-outline:hover { background: #f9fafb; }
+    .btn-sm { padding: 4px 12px; font-size: 12px; }
+
+    .main { display: flex; height: calc(100vh - 73px); }
+    .form-panel { width: 50%; overflow-y: auto; padding: 24px; }
+    .preview-panel { width: 50%; background: #e5e7eb; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; align-items: center; }
+
+    .section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .section-title { font-size: 16px; font-weight: 700; color: #1f2937; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #f3f4f6; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+    .form-group input, .form-group textarea {
+      width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
+    }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+
+    .template-btns, .font-btns { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .template-btn, .font-btn {
+      padding: 8px 16px; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.2s; font-size: 13px;
+    }
+    .template-btn.active, .font-btn.active { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+    .upload-font-btn, .upload-template-btn { padding: 8px 16px; border-radius: 8px; border: 2px dashed #d1d5db; cursor: pointer; transition: all 0.2s; font-size: 13px; color: #6b7280; }
+    .upload-font-btn:hover, .upload-template-btn:hover { border-color: #3b82f6; background: #eff6ff; color: #3b82f6; }
+    .upload-font-btn input, .upload-template-btn input { display: none; }
+    .font-btns { margin-bottom: 24px; }
+
+    .resume-preview { width: 210mm; min-height: 297mm; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 20mm; }
+
+    .resume-title { text-align: center; margin-bottom: 16px; }
+    .resume-title h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .resume-title .info { font-size: 12px; color: #6b7280; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+
+    .resume-section { margin-bottom: 16px; }
+    .resume-section h2 { font-size: 14px; font-weight: 700; padding-bottom: 4px; border-bottom: 1px solid #e5e7eb; margin-bottom: 8px; }
+    .resume-item { margin-bottom: 8px; font-size: 12px; }
+    .resume-item-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .resume-item-header .left { font-weight: 600; }
+    .resume-item-header .right { color: #9ca3af; }
+    .resume-item-content { color: #6b7280; padding-left: 12px; white-space: pre-line; }
+
+    .history-panel {
+      position: fixed; bottom: 16px; right: 16px; background: white; border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 16px; max-width: 300px; max-height: 250px; overflow-y: auto;
+    }
+    .history-panel h3 { font-size: 14px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+    .history-item { font-size: 12px; color: #6b7280; padding: 4px 0; border-bottom: 1px solid #f3f4f6; }
+
+    /* ===== 模板样式 - 统一中文风格 ===== */
+
+    /* 统一中文风格基础变量 */
+    :root {
+      --cn-primary: #4a7c59;
+      --cn-accent: #c4a35a;
+      --cn-text: #333;
+      --cn-text-light: #666;
+      --cn-border: #e0e0e0;
+    }
+
+    /* 1. 简约模板 - 极简线条风格 */
+    .tpl-simple { color: #333; font-family: 'SimSun', 'STSong', serif; }
+    .tpl-simple .resume-preview { padding: 0; background: #fff; }
+    .tpl-simple .chinese-header { text-align: center; padding: 30px 30px 20px; border-bottom: 2px solid #333; }
+    .tpl-simple .chinese-header .main-title { font-size: 32px; font-weight: normal; color: #333; letter-spacing: 12px; margin-bottom: 6px; }
+    .tpl-simple .chinese-header .sub-title { font-size: 12px; color: #999; letter-spacing: 3px; text-transform: uppercase; }
+    .tpl-simple .chinese-body { padding: 25px 30px; }
+    .tpl-simple .chinese-section { margin-bottom: 20px; }
+    .tpl-simple .chinese-section-title { font-size: 14px; font-weight: bold; color: #333; padding-bottom: 6px; border-bottom: 1px solid #333; margin-bottom: 12px; letter-spacing: 4px; display: block; }
+    .tpl-simple .chinese-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 40px; font-size: 13px; line-height: 1.8; }
+    .tpl-simple .chinese-info-grid .info-row { display: flex; }
+    .tpl-simple .chinese-info-grid .info-label { color: #666; min-width: 60px; }
+    .tpl-simple .chinese-info-grid .info-value { color: #333; flex: 1; }
+    .tpl-simple .chinese-item { margin-bottom: 12px; font-size: 13px; line-height: 1.6; }
+    .tpl-simple .chinese-item-header { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .tpl-simple .chinese-item-header .item-left { font-weight: bold; color: #333; }
+    .tpl-simple .chinese-item-header .item-right { color: #666; font-size: 12px; }
+    .tpl-simple .chinese-item-content { color: #555; margin-top: 4px; }
+    .tpl-simple .chinese-skill-row { margin-bottom: 6px; font-size: 13px; line-height: 1.6; }
+    .tpl-simple .chinese-skill-row .skill-label { color: #333; font-weight: bold; }
+    .tpl-simple .chinese-skill-row .skill-value { color: #555; }
+
+    /* 2. 侧边栏模板 - 简洁风格 */
+    .tpl-sidebar { color: #333; font-family: 'SimSun', 'STSong', serif; }
+    .tpl-sidebar .resume-preview { display: flex; padding: 0; }
+    .tpl-sidebar .resume-sidebar { width: 30%; background: transparent; color: #333; padding: 30px 15px; border-right: 1px solid #e0e0e0; }
+    .tpl-sidebar .resume-sidebar .sidebar-title { font-size: 18px; color: #333; letter-spacing: 6px; text-align: center; padding: 20px 0; }
+    .tpl-sidebar .resume-main { width: 70%; padding: 30px; background: #fff; }
+    .tpl-sidebar .resume-main .chinese-section { margin-bottom: 20px; }
+    .tpl-sidebar .resume-main .chinese-section-title { font-size: 14px; font-weight: bold; color: #2c3e50; padding-left: 12px; border-left: 4px solid #2c3e50; margin-bottom: 12px; letter-spacing: 2px; }
+    .tpl-sidebar .resume-main .chinese-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; font-size: 12px; line-height: 1.7; }
+    .tpl-sidebar .resume-main .chinese-info-grid .info-row { display: flex; }
+    .tpl-sidebar .resume-main .chinese-info-grid .info-label { color: #666; min-width: 55px; }
+    .tpl-sidebar .resume-main .chinese-info-grid .info-value { color: #333; flex: 1; }
+    .tpl-sidebar .resume-main .chinese-item { margin-bottom: 14px; font-size: 12px; line-height: 1.6; }
+    .tpl-sidebar .resume-main .chinese-item-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .tpl-sidebar .resume-main .chinese-item-header .item-left { font-weight: bold; color: #2c3e50; }
+    .tpl-sidebar .resume-main .chinese-item-header .item-right { color: #7f8c8d; font-size: 11px; }
+    .tpl-sidebar .resume-main .chinese-item-content { color: #555; margin-top: 4px; }
+    .tpl-sidebar .resume-main .chinese-skill-row { margin-bottom: 6px; font-size: 12px; line-height: 1.6; }
+    .tpl-sidebar .resume-main .chinese-skill-row .skill-label { color: #2c3e50; font-weight: bold; }
+    .tpl-sidebar .resume-main .chinese-skill-row .skill-value { color: #555; }
+
+    /* 3. 时间线模板 - 左侧时间轴风格 */
+    .tpl-timeline { color: #333; font-family: 'SimSun', 'STSong', serif; }
+    .tpl-timeline .resume-preview { padding: 0; background: #fff; }
+    .tpl-timeline .chinese-header { background: #4a7c59; color: #fff; padding: 25px 30px; text-align: center; }
+    .tpl-timeline .chinese-header .main-title { font-size: 28px; font-weight: bold; letter-spacing: 8px; margin-bottom: 4px; }
+    .tpl-timeline .chinese-header .sub-title { font-size: 12px; color: rgba(255,255,255,0.8); letter-spacing: 2px; }
+    .tpl-timeline .chinese-body { padding: 25px 30px; }
+    .tpl-timeline .chinese-section { margin-bottom: 22px; }
+    .tpl-timeline .chinese-section-title { font-size: 15px; font-weight: bold; color: #4a7c59; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #4a7c59; display: block; }
+    .tpl-timeline .chinese-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 30px; font-size: 13px; line-height: 1.8; margin-bottom: 10px; }
+    .tpl-timeline .chinese-info-grid .info-row { display: flex; }
+    .tpl-timeline .chinese-info-grid .info-label { color: #666; min-width: 60px; }
+    .tpl-timeline .chinese-info-grid .info-value { color: #333; flex: 1; }
+    .tpl-timeline .timeline-list { position: relative; padding-left: 20px; }
+    .tpl-timeline .timeline-list::before { content: ''; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: #e0e0e0; }
+    .tpl-timeline .chinese-item { margin-bottom: 16px; font-size: 13px; line-height: 1.7; position: relative; }
+    .tpl-timeline .chinese-item::before { content: ''; position: absolute; left: -18px; top: 6px; width: 10px; height: 10px; background: #4a7c59; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 2px #4a7c59; }
+    .tpl-timeline .chinese-item-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .tpl-timeline .chinese-item-header .item-left { font-weight: bold; color: #333; }
+    .tpl-timeline .chinese-item-header .item-right { color: #4a7c59; font-weight: 600; font-size: 12px; }
+    .tpl-timeline .chinese-item-content { color: #555; margin-top: 4px; }
+    .tpl-timeline .chinese-skill-row { margin-bottom: 8px; font-size: 13px; line-height: 1.7; }
+    .tpl-timeline .chinese-skill-row .skill-label { color: #333; font-weight: bold; }
+    .tpl-timeline .chinese-skill-row .skill-value { color: #555; }
+
+    /* 4. 专业模板 - 商务卡片风格 */
+    .tpl-professional { color: #333; font-family: 'SimSun', 'STSong', serif; }
+    .tpl-professional .resume-preview { padding: 0; background: #f5f5f5; }
+    .tpl-professional .chinese-header { background: #fff; padding: 25px 30px; border-bottom: 3px double #2c5282; }
+    .tpl-professional .chinese-header .main-title { font-size: 30px; font-weight: bold; color: #2c5282; letter-spacing: 6px; margin-bottom: 4px; }
+    .tpl-professional .chinese-header .sub-title { font-size: 12px; color: #718096; letter-spacing: 2px; }
+    .tpl-professional .chinese-body { padding: 25px 30px; }
+    .tpl-professional .chinese-section { margin-bottom: 20px; background: #fff; padding: 18px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .tpl-professional .chinese-section-title { font-size: 14px; font-weight: bold; color: #2c5282; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; letter-spacing: 2px; display: block; }
+    .tpl-professional .chinese-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 30px; font-size: 13px; line-height: 1.8; }
+    .tpl-professional .chinese-info-grid .info-row { display: flex; }
+    .tpl-professional .chinese-info-grid .info-label { color: #718096; min-width: 60px; }
+    .tpl-professional .chinese-info-grid .info-value { color: #2d3748; flex: 1; }
+    .tpl-professional .chinese-item { margin-bottom: 12px; padding: 12px; background: #f7fafc; border-left: 3px solid #2c5282; }
+    .tpl-professional .chinese-item-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .tpl-professional .chinese-item-header .item-left { font-weight: bold; color: #2d3748; }
+    .tpl-professional .chinese-item-header .item-right { color: #2c5282; font-weight: 600; font-size: 12px; }
+    .tpl-professional .chinese-item-content { color: #4a5568; margin-top: 4px; }
+    .tpl-professional .chinese-skill-row { margin-bottom: 8px; font-size: 13px; line-height: 1.7; }
+    .tpl-professional .chinese-skill-row .skill-label { color: #2d3748; font-weight: bold; }
+    .tpl-professional .chinese-skill-row .skill-value { color: #4a5568; }
+
+    /* ===== 字体样式 ===== */
+    .font-inter .resume-preview { font-family: 'Inter', system-ui, sans-serif; }
+    .font-noto-serif .resume-preview { font-family: 'Noto Serif SC', 'STSong', serif; }
+    .font-stsong .resume-preview { font-family: 'STSong', 'SimSun', serif; }
+    .font-stkaiti .resume-preview { font-family: 'STKaiti', 'SimSun', serif; }
+    .font-simhei .resume-preview { font-family: 'SimHei', sans-serif; }
+    .font-custom .resume-preview { font-family: var(--custom-font-name, 'CustomFont'), sans-serif; }
+
+    @media (max-width: 768px) {
+      .main { flex-direction: column; }
+      .form-panel, .preview-panel { width: 100%; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>简历生成器</h1>
+      <p>填写信息 · 选择模板 · 导出PDF</p>
+    </div>
+    <div class="header-btns">
+      <button class="btn btn-primary" onclick="exportPDF()">导出PDF</button>
+      <button class="btn btn-outline" onclick="resetForm()">重置</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="form-panel">
+      <div class="template-btns" id="template-btns">
+        <button class="template-btn active" onclick="selectTemplate('simple')">简约</button>
+        <button class="template-btn" onclick="selectTemplate('sidebar')">侧边栏</button>
+        <button class="template-btn" onclick="selectTemplate('timeline')">时间线</button>
+        <button class="template-btn" onclick="selectTemplate('professional')">专业</button>
+        <label class="upload-template-btn" onclick="document.getElementById('template-upload').click()">
+          <input type="file" id="template-upload" accept=".html,.htm" onchange="handleTemplateUpload(event)">
+          + 自定义
+        </label>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">选择字体</h2>
+        <div class="font-btns" id="font-btns">
+          <button class="font-btn active" onclick="selectFont('inter')">思源黑体</button>
+          <button class="font-btn" onclick="selectFont('noto-serif')">思源宋体</button>
+          <button class="font-btn" onclick="selectFont('stsong')">宋体</button>
+          <button class="font-btn" onclick="selectFont('stkaiti')">楷体</button>
+          <button class="font-btn" onclick="selectFont('simhei')">黑体</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">基本信息</h2>
+        <div class="grid-2">
+          <div class="form-group"><label>姓名</label><input type="text" id="name" placeholder="张三" oninput="updatePreview()"></div>
+          <div class="form-group"><label>性别</label><input type="text" id="gender" placeholder="男/女" oninput="updatePreview()"></div>
+          <div class="form-group"><label>年龄</label><input type="text" id="age" placeholder="24" oninput="updatePreview()"></div>
+          <div class="form-group"><label>电话</label><input type="text" id="phone" placeholder="152xxxx1234" oninput="updatePreview()"></div>
+          <div class="form-group"><label>邮箱</label><input type="text" id="email" placeholder="example@qq.com" oninput="updatePreview()"></div>
+          <div class="form-group"><label>所在地</label><input type="text" id="location" placeholder="福建福州" oninput="updatePreview()"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">教育背景</h2>
+        <div id="education-list"></div>
+        <button class="btn btn-outline" onclick="addEducation()">+ 添加教育经历</button>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">工作经历</h2>
+        <div id="experience-list"></div>
+        <button class="btn btn-outline" onclick="addExperience()">+ 添加工作经历</button>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">项目经历</h2>
+        <div id="projects-list"></div>
+        <button class="btn btn-outline" onclick="addProject()">+ 添加项目经历</button>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">专业技能</h2>
+        <div class="form-group"><label>编程语言</label><input type="text" id="skill-lang" placeholder="如: JavaScript, Python" oninput="updatePreview()"></div>
+        <div class="form-group"><label>框架/库</label><input type="text" id="skill-framework" placeholder="如: React, Vue" oninput="updatePreview()"></div>
+        <div class="form-group"><label>工具</label><input type="text" id="skill-tool" placeholder="如: Git, Docker" oninput="updatePreview()"></div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">证书</h2>
+        <textarea id="certificates" rows="2" placeholder="计算机二级、普通话证书等" oninput="updatePreview()"></textarea>
+      </div>
+    </div>
+
+    <div class="preview-panel">
+      <p style="font-size:14px;color:#6b7280;margin-bottom:16px;">简历预览 · <span id="template-name">简约</span></p>
+      <div class="resume-preview" id="resume-preview"></div>
+    </div>
+  </div>
+
+  <div class="history-panel">
+    <h3>📝 修改记录</h3>
+    <div id="history-list"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    let currentTemplate = 'simple';
+    let currentFont = 'inter';
+    let history = [];
+    let educationCount = 0;
+    let experienceCount = 0;
+    let projectCount = 0;
+    let customFonts = {};
+
+    const templateNames = { simple: '简约', sidebar: '侧边栏', timeline: '时间线', professional: '专业' };
+    let customTemplates = {};
+
+    const fontConfig = {
+      inter: { name: '思源黑体', family: "'Inter', system-ui, sans-serif", url: null },
+      'noto-serif': { name: '思源宋体', family: "'Noto Serif SC', 'STSong', serif", url: null },
+      stsong: { name: '宋体', family: "'STSong', 'SimSun', serif", url: null },
+      stkaiti: { name: '楷体', family: "'STKaiti', 'SimSun', serif", url: null },
+      simhei: { name: '黑体', family: "'SimHei', sans-serif", url: null }
+    };
+
+    const { jsPDF } = window.jspdf;
+
+    function init() {
+      loadCustomFonts();
+      loadCustomTemplates();
+      renderTemplateButtons();
+      renderFontButtons();
+      addEducation();
+      addExperience();
+      addProject();
+      addHistory('初始化表单');
+      updatePreview();
+      loadFromStorage();
+    }
+
+    function renderFontButtons() {
+      const container = document.getElementById('font-btns');
+      let html = '';
+
+      for (const [key, font] of Object.entries(fontConfig)) {
+        html += `<button class="font-btn ${currentFont === key ? 'active' : ''}" onclick="selectFont('${key}')">${font.name}</button>`;
+      }
+
+      for (const [key, font] of Object.entries(customFonts)) {
+        html += `<button class="font-btn ${currentFont === 'custom-' + key ? 'active' : ''}" onclick="selectFont('custom-${key}')">${font.name}</button>`;
+      }
+
+      html += `<label class="upload-font-btn" onclick="document.getElementById('font-upload').click()">
+        <input type="file" id="font-upload" accept=".ttf,.otf,.woff,.woff2" onchange="handleFontUpload(event)">
+        + 自定义
+      </label>`;
+
+      container.innerHTML = html;
+    }
+
+    function handleFontUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['ttf', 'otf', 'woff', 'woff2'].includes(ext)) {
+        alert('不支持的字体格式，请上传 .ttf, .otf, .woff 或 .woff2 文件');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const fontName = file.name.replace(/\.[^/.]+$/, '');
+        const fontKey = fontName.toLowerCase().replace(/\s+/g, '-');
+
+        const fontFace = new FontFace(fontName, e.target.result);
+        fontFace.load().then(function(loadedFace) {
+          document.fonts.add(loadedFace);
+          customFonts[fontKey] = { name: fontName, family: fontName, data: e.target.result };
+          saveCustomFonts();
+          renderFontButtons();
+          addHistory('上传字体: ' + fontName);
+          alert('字体 "' + fontName + '" 加载成功！');
+        }).catch(function(err) {
+          alert('字体加载失败: ' + err);
+        });
+      };
+      reader.readAsArrayBuffer(file);
+      event.target.value = '';
+    }
+
+    function saveCustomFonts() {
+      localStorage.setItem('customFonts', JSON.stringify(customFonts));
+    }
+
+    function loadCustomFonts() {
+      const saved = localStorage.getItem('customFonts');
+      if (saved) {
+        try {
+          customFonts = JSON.parse(saved);
+          for (const [key, font] of Object.entries(customFonts)) {
+            if (font.data) {
+              const fontFace = new FontFace(font.name, font.data);
+              fontFace.load().then(function(loadedFace) {
+                document.fonts.add(loadedFace);
+              }).catch(function(err) {
+                console.log('字体恢复失败:', font.name, err);
+              });
+            }
+          }
+        } catch(e) {
+          customFonts = {};
+        }
+      }
+    }
+
+    function selectTemplate(tpl) {
+      currentTemplate = tpl;
+      document.querySelectorAll('.template-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.template-btn').forEach(btn => {
+        if (btn.textContent.trim() === templateNames[tpl]) btn.classList.add('active');
+      });
+      if (tpl.startsWith('custom-')) {
+        document.getElementById('template-name').textContent = customTemplates[tpl.replace('custom-', '')]?.name || '自定义';
+      } else {
+        document.getElementById('template-name').textContent = templateNames[tpl];
+      }
+      addHistory('切换模板: ' + (templateNames[tpl] || '自定义'));
+      updatePreview();
+    }
+
+    function handleTemplateUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['html', 'htm'].includes(ext)) {
+        alert('请上传 .html 或 .htm 格式的模板文件');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const templateName = file.name.replace(/\.[^/.]+$/, '');
+        const templateKey = templateName.toLowerCase().replace(/\s+/g, '-');
+
+        customTemplates[templateKey] = { name: templateName, html: e.target.result };
+        saveCustomTemplates();
+        renderTemplateButtons();
+        addHistory('上传模板: ' + templateName);
+        alert('模板 "' + templateName + '" 上传成功！');
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function renderTemplateButtons() {
+      const container = document.getElementById('template-btns');
+      let html = '';
+
+      const templateOrder = ['simple', 'sidebar', 'timeline', 'professional'];
+      for (const key of templateOrder) {
+        if (templateNames[key]) {
+          html += `<button class="template-btn ${currentTemplate === key ? 'active' : ''}" onclick="selectTemplate('${key}')">${templateNames[key]}</button>`;
+        }
+      }
+
+      for (const [key, tpl] of Object.entries(customTemplates)) {
+        html += `<button class="template-btn ${currentTemplate === 'custom-' + key ? 'active' : ''}" onclick="selectTemplate('custom-${key}')">${tpl.name}</button>`;
+      }
+
+      html += `<label class="upload-template-btn" onclick="document.getElementById('template-upload').click()">
+        <input type="file" id="template-upload" accept=".html,.htm" onchange="handleTemplateUpload(event)">
+        + 自定义
+      </label>`;
+
+      container.innerHTML = html;
+    }
+
+    function saveCustomTemplates() {
+      localStorage.setItem('customTemplates', JSON.stringify(customTemplates));
+    }
+
+    function loadCustomTemplates() {
+      const saved = localStorage.getItem('customTemplates');
+      if (saved) {
+        try {
+          customTemplates = JSON.parse(saved);
+        } catch(e) {
+          customTemplates = {};
+        }
+      }
+    }
+
+    function selectFont(fontKey) {
+      currentFont = fontKey;
+      let fontFamily;
+
+      if (fontKey.startsWith('custom-')) {
+        const key = fontKey.replace('custom-', '');
+        fontFamily = customFonts[key] ? customFonts[key].family : "'Inter', sans-serif";
+        document.body.className = 'font-custom';
+        document.documentElement.style.setProperty('--custom-font-name', fontFamily);
+      } else {
+        fontFamily = fontConfig[fontKey] ? fontConfig[fontKey].family : "'Inter', sans-serif";
+        document.body.className = 'font-' + fontKey;
+      }
+
+      renderFontButtons();
+      addHistory('切换字体');
+      updatePreview();
+    }
+
+    function addEducation() {
+      const list = document.getElementById('education-list');
+      const id = educationCount++;
+      const html = `<div style="background:#f9fafb;padding:12px;border-radius:8px;margin-bottom:8px;" id="edu-${id}">
+        <div class="grid-2">
+          <div class="form-group"><label>学校</label><input type="text" oninput="updatePreview()" placeholder="厦门大学"></div>
+          <div class="form-group"><label>专业</label><input type="text" oninput="updatePreview()" placeholder="计算机科学与技术"></div>
+          <div class="form-group"><label>学历</label><input type="text" oninput="updatePreview()" placeholder="本科"></div>
+          <div class="form-group"><label>时间</label><input type="text" oninput="updatePreview()" placeholder="2020.09 - 2024.06"></div>
+        </div>
+        <button class="btn btn-outline" style="font-size:12px;padding:4px 8px;" onclick="removeItem('edu-${id}')">删除</button>
+      </div>`;
+      list.insertAdjacentHTML('beforeend', html);
+      addHistory('添加教育经历');
+    }
+
+    function addExperience() {
+      const list = document.getElementById('experience-list');
+      const id = experienceCount++;
+      const html = `<div style="background:#f9fafb;padding:12px;border-radius:8px;margin-bottom:8px;" id="exp-${id}">
+        <div class="grid-2">
+          <div class="form-group"><label>公司</label><input type="text" oninput="updatePreview()" placeholder="字节跳动"></div>
+          <div class="form-group"><label>职位</label><input type="text" oninput="updatePreview()" placeholder="前端开发"></div>
+          <div class="form-group"><label>开始时间</label><input type="text" oninput="updatePreview()" placeholder="2023.06"></div>
+          <div class="form-group"><label>结束时间</label><input type="text" oninput="updatePreview()" placeholder="2023.09"></div>
+        </div>
+        <div class="form-group"><label>工作内容</label><textarea rows="2" oninput="updatePreview()" placeholder="负责xxx，使用xxx技术，取得了xxx成果"></textarea></div>
+        <button class="btn btn-outline" style="font-size:12px;padding:4px 8px;" onclick="removeItem('exp-${id}')">删除</button>
+      </div>`;
+      list.insertAdjacentHTML('beforeend', html);
+      addHistory('添加工作经历');
+    }
+
+    function addProject() {
+      const list = document.getElementById('projects-list');
+      const id = projectCount++;
+      const html = `<div style="background:#f9fafb;padding:12px;border-radius:8px;margin-bottom:8px;" id="proj-${id}">
+        <div class="grid-2">
+          <div class="form-group"><label>项目名称</label><input type="text" oninput="updatePreview()" placeholder="在线简历生成器"></div>
+          <div class="form-group"><label>担任角色</label><input type="text" oninput="updatePreview()" placeholder="前端开发"></div>
+          <div class="form-group"><label>开始时间</label><input type="text" oninput="updatePreview()" placeholder="2024.01"></div>
+          <div class="form-group"><label>结束时间</label><input type="text" oninput="updatePreview()" placeholder="2024.03"></div>
+        </div>
+        <div class="form-group"><label>项目描述</label><textarea rows="2" oninput="updatePreview()" placeholder="项目背景、使用的技术、取得的成果"></textarea></div>
+        <div class="form-group"><label>技术栈</label><input type="text" oninput="updatePreview()" placeholder="React, Tailwind"></div>
+        <button class="btn btn-outline" style="font-size:12px;padding:4px 8px;" onclick="removeItem('proj-${id}')">删除</button>
+      </div>`;
+      list.insertAdjacentHTML('beforeend', html);
+      addHistory('添加项目经历');
+    }
+
+    function removeItem(id) {
+      document.getElementById(id).remove();
+      addHistory('删除条目');
+      updatePreview();
+    }
+
+    function getFormData() {
+      const inputs = document.querySelectorAll('#education-list input, #education-list textarea');
+      const edus = [];
+      for (let i = 0; i < inputs.length; i += 4) {
+        if (inputs[i].value || inputs[i+1].value) {
+          edus.push({ school: inputs[i].value, major: inputs[i+1].value, degree: inputs[i+2].value, time: inputs[i+3].value });
+        }
+      }
+
+      const expInputs = document.querySelectorAll('#experience-list input, #experience-list textarea');
+      const exps = [];
+      for (let i = 0; i < expInputs.length; i += 5) {
+        if (expInputs[i].value) {
+          exps.push({ company: expInputs[i].value, position: expInputs[i+1].value, start: expInputs[i+2].value, end: expInputs[i+3].value, desc: expInputs[i+4].value });
+        }
+      }
+
+      const projInputs = document.querySelectorAll('#projects-list input, #projects-list textarea');
+      const projs = [];
+      for (let i = 0; i < projInputs.length; i += 6) {
+        if (projInputs[i].value) {
+          projs.push({ name: projInputs[i].value, role: projInputs[i+1].value, start: projInputs[i+2].value, end: projInputs[i+3].value, desc: projInputs[i+4].value, tech: projInputs[i+5].value });
+        }
+      }
+
+      return {
+        name: document.getElementById('name').value,
+        gender: document.getElementById('gender').value,
+        age: document.getElementById('age').value,
+        phone: document.getElementById('phone').value,
+        email: document.getElementById('email').value,
+        location: document.getElementById('location').value,
+        education: edus,
+        experience: exps,
+        projects: projs,
+        skillLang: document.getElementById('skill-lang').value,
+        skillFramework: document.getElementById('skill-framework').value,
+        skillTool: document.getElementById('skill-tool').value,
+        certificates: document.getElementById('certificates').value
+      };
+    }
+
+    function updatePreview() {
+      const data = getFormData();
+      const preview = document.getElementById('resume-preview');
+
+      if (currentTemplate.startsWith('custom-')) {
+        const key = currentTemplate.replace('custom-', '');
+        if (customTemplates[key]) {
+          let customHtml = customTemplates[key].html;
+          customHtml = customHtml.replace(/\{\{name\}\}/g, data.name || '姓名');
+          customHtml = customHtml.replace(/\{\{phone\}\}/g, data.phone || '');
+          customHtml = customHtml.replace(/\{\{email\}\}/g, data.email || '');
+          customHtml = customHtml.replace(/\{\{location\}\}/g, data.location || '');
+          customHtml = customHtml.replace(/\{\{gender\}\}/g, data.gender || '');
+          customHtml = customHtml.replace(/\{\{age\}\}/g, data.age || '');
+          customHtml = customHtml.replace(/\{\{education\}\}/g, data.education.filter(e => e.school).map(e => `${e.school} ${e.major} ${e.degree} ${e.time}`).join('\n'));
+          customHtml = customHtml.replace(/\{\{experience\}\}/g, data.experience.filter(e => e.company).map(e => `${e.company} ${e.position} ${e.start}-${e.end}\n${e.desc}`).join('\n\n'));
+          customHtml = customHtml.replace(/\{\{projects\}\}/g, data.projects.filter(p => p.name).map(p => `${p.name} ${p.role} ${p.start}-${p.end}\n${p.desc}\n技术栈: ${p.tech}`).join('\n\n'));
+          customHtml = customHtml.replace(/\{\{skills\}\}/g, [data.skillLang, data.skillFramework, data.skillTool].filter(Boolean).join(' | '));
+          customHtml = customHtml.replace(/\{\{certificates\}\}/g, data.certificates || '');
+          preview.innerHTML = customHtml;
+          saveToStorage();
+          return;
+        }
+      }
+
+      const tplClass = `tpl-${currentTemplate}`;
+      let html = `<div class="${tplClass}">`;
+
+      if (currentTemplate === 'sidebar') {
+        html += `<div class="resume-sidebar">
+          <div class="sidebar-title">个人简历</div>
+        </div><div class="resume-main">`;
+      } else {
+        // 非侧边栏模板显示头部
+        html += `<div class="chinese-header">
+          <div class="main-title">个人简历</div>
+        </div>
+        <div class="chinese-deco-bar"></div>`;
+      }
+
+      html += `<div class="chinese-body">`;
+
+      // 基本信息区块
+      if (currentTemplate === 'sidebar') {
+        // 侧边栏模板：侧边栏已显示姓名、电话、邮箱、所在地，只显示剩余信息
+        html += `<div class="chinese-section">
+          <div class="chinese-section-title">基本信息</div>
+          <div class="chinese-info-grid">
+            <div class="info-row"><span class="info-label">性　别：</span><span class="info-value">${data.gender || '-'}</span></div>
+            <div class="info-row"><span class="info-label">年　龄：</span><span class="info-value">${data.age || '-'}</span></div>
+          </div>
+        </div>`;
+      } else {
+        // 其他模板：显示完整基本信息
+        html += `<div class="chinese-section">
+          <div class="chinese-section-title">基本信息</div>
+          <div class="chinese-info-grid">
+            <div class="info-row"><span class="info-label">姓　名：</span><span class="info-value">${data.name || '姓名'}</span></div>
+            <div class="info-row"><span class="info-label">性　别：</span><span class="info-value">${data.gender || '-'}</span></div>
+            <div class="info-row"><span class="info-label">年　龄：</span><span class="info-value">${data.age || '-'}</span></div>
+            <div class="info-row"><span class="info-label">电　话：</span><span class="info-value">${data.phone || '-'}</span></div>
+            <div class="info-row"><span class="info-label">邮　箱：</span><span class="info-value">${data.email || '-'}</span></div>
+            <div class="info-row"><span class="info-label">所在地：</span><span class="info-value">${data.location || '-'}</span></div>
+          </div>
+        </div>`;
+      }
+
+      // 教育背景
+      if (data.education.length > 0 && data.education.some(e => e.school)) {
+        html += `<div class="chinese-section">
+          <div class="chinese-section-title">教育背景</div>`;
+        if (currentTemplate === 'timeline') html += `<div class="timeline-list">`;
+        data.education.forEach(e => {
+          if (e.school) {
+            html += `<div class="chinese-item">
+              <div class="chinese-item-header">
+                <span class="item-left">${e.school} · ${e.major} · ${e.degree}</span>
+                <span class="item-right">${e.time}</span>
+              </div>
+            </div>`;
+          }
+        });
+        if (currentTemplate === 'timeline') html += `</div>`;
+        html += `</div>`;
+      }
+
+      // 工作经历
+      if (data.experience.length > 0 && data.experience.some(e => e.company)) {
+        html += `<div class="chinese-section">
+          <div class="chinese-section-title">实习经历</div>`;
+        if (currentTemplate === 'timeline') html += `<div class="timeline-list">`;
+        data.experience.forEach(e => {
+          if (e.company) {
+            html += `<div class="chinese-item">
+              <div class="chinese-item-header">
+                <span class="item-left">${e.company} · ${e.position}</span>
+                <span class="item-right">${e.start} - ${e.end}</span>
+              </div>
+              ${e.desc ? `<div class="chinese-item-content">${e.desc}</div>` : ''}
+            </div>`;
+          }
+        });
+        if (currentTemplate === 'timeline') html += `</div>`;
+        html += `</div>`;
+      }
+
+      // 项目经历
+      if (data.projects.length > 0 && data.projects.some(p => p.name)) {
+        html += `<div class="chinese-section">
+          <div class="chinese-section-title">项目经历</div>`;
+        if (currentTemplate === 'timeline') html += `<div class="timeline-list">`;
+        data.projects.forEach(p => {
+          if (p.name) {
+            html += `<div class="chinese-item">
+              <div class="chinese-item-header">
+                <span class="item-left">${p.name} · ${p.role}</span>
+                <span class="item-right">${p.start} - ${p.end}</span>
+              </div>
+              ${p.desc ? `<div class="chinese-item-content">${p.desc}</div>` : ''}
+            </div>`;
+          }
+        });
+        if (currentTemplate === 'timeline') html += `</div>`;
+        html += `</div>`;
+      }
+
+      // 专业技能
+      const hasSkills = data.skillLang || data.skillFramework || data.skillTool;
+      if (hasSkills) {
+        html += `<div class="chinese-section">
+          <div class="chinese-section-title">专业技能</div>`;
+        if (data.skillLang) html += `<div class="chinese-skill-row"><span class="skill-label">编程语言：</span><span class="skill-value">${data.skillLang}</span></div>`;
+        if (data.skillFramework) html += `<div class="chinese-skill-row"><span class="skill-label">框架与工具：</span><span class="skill-value">${data.skillFramework}</span></div>`;
+        if (data.skillTool) html += `<div class="chinese-skill-row"><span class="skill-label">开发工具：</span><span class="skill-value">${data.skillTool}</span></div>`;
+        html += `</div>`;
+      }
+
+      // 证书
+      if (data.certificates) {
+        html += `<div class="chinese-section">
+          <div class="chinese-section-title">证书</div>
+          <div class="chinese-item-content">${data.certificates}</div>
+        </div>`;
+      }
+
+      if (currentTemplate === 'sidebar') {
+        html += `</div></div></div>`;
+      } else {
+        html += `</div></div>`;
+      }
+      preview.innerHTML = html;
+      saveToStorage();
+    }
+
+    function addHistory(action) {
+      const now = new Date();
+      history.unshift({ time: now.toLocaleTimeString(), action });
+      if (history.length > 10) history.pop();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      list.innerHTML = history.map(h => `<div class="history-item"><span style="color:#9ca3af;">${h.time}</span><br>${h.action}</div>`).join('');
+    }
+
+    function resetForm() {
+      if (confirm('确定要重置吗？')) location.reload();
+    }
+
+    function exportPDF() {
+      addHistory('导出PDF');
+      const preview = document.getElementById('resume-preview');
+      html2canvas(preview, { scale: 2, useCORS: true }).then(canvas => {
+        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const width = pdf.internal.pageSize.getWidth();
+        const height = (canvas.height * width) / canvas.width;
+        let y = 0;
+        while (y < height) {
+          pdf.addImage(imgData, 'JPEG', 0, -y, width, height);
+          y += 297;
+          if (y < height) pdf.addPage();
+        }
+        const name = document.getElementById('name').value || '简历';
+        pdf.save(`${name}_${new Date().toLocaleDateString()}.pdf`);
+      });
+    }
+
+    function saveToStorage() {
+      localStorage.setItem('resumeData', JSON.stringify({ template: currentTemplate, font: currentFont }));
+    }
+
+    function loadFromStorage() {
+      const saved = localStorage.getItem('resumeData');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.template) {
+            currentTemplate = data.template;
+            if (!currentTemplate.startsWith('custom-')) {
+              document.querySelectorAll('.template-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.trim() === templateNames[data.template]) btn.classList.add('active');
+              });
+              document.getElementById('template-name').textContent = templateNames[data.template];
+            } else {
+              const key = currentTemplate.replace('custom-', '');
+              document.getElementById('template-name').textContent = customTemplates[key]?.name || '自定义';
+            }
+          }
+          if (data.font) {
+            selectFont(data.font);
+          }
+        } catch(e) {}
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
